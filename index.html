@@ -26,175 +26,179 @@
 <body>
   <div id="game"></div>
   <script>
-    const WIDTH = 60;
-    const HEIGHT = 20;
-    const DINO_CHAR = 'O';
-    const OBSTACLE_CHAR = '|';
-    const GROUND_CHAR = '=';
-    const CLOUD_CHAR = '*';
-    const EMPTY_CHAR = ' ';
+  const WIDTH = 60;
+  const HEIGHT = 20;
+  const DINO_CHAR = 'O';
+  const OBSTACLE_CHAR = '|';
+  const GROUND_CHAR = '=';
+  const CLOUD_CHAR = '*';
+  const EMPTY_CHAR = ' ';
 
-    let dinoX = 5;
-    let dinoY = HEIGHT - 2;
-    let isJumping = false;
-    let jumpHeight = 6;
-    let jumpCount = 0;
-    let score = 0;
-    let highScore = 0;
-    let speed = 100;
-    let gameNo = 0;
-    let obstacleRate = 20;
-    let difficulty = "Easy";
-    let isPaused = false;
+  let dinoX = 5;
+  let dinoY = HEIGHT - 2;
+  let isJumping = false;
+  let jumpHeight = 6;
+  let jumpCount = 0;
+  let score = 0;
+  let highScore = 0;
+  let speed = 100;
+  let gameNo = 0;
+  let obstacleRate = 20;
+  let difficulty = "Easy";
+  let isPaused = false;
 
-    let obstacles = [];
-    let clouds = [];
-    let gameInterval;
+  let obstacles = [];
+  let clouds = [];
+  let gameInterval;
 
-    const gameDiv = document.getElementById("game");
+  const gameDiv = document.getElementById("game");
 
-    function draw() {
-      let buffer = " []=[]=[]=[]=[]=[]=[]=[  [ DINO ]  ]=[]=[]=[]=[]=[]=[]=[] \n\n";
-      buffer += `  | [Game: ${gameNo}] | [Difficulty: ${difficulty}]\n`;
-      buffer += ':'.repeat(WIDTH) + '\n';
+  function draw() {
+    let buffer = " []=[]=[]=[]=[]=[]=[]=[  [ DINO ]  ]=[]=[]=[]=[]=[]=[]=[] \n\n";
+    buffer += `  | [Game: ${gameNo}] | [Difficulty: ${difficulty}]\n`;
+    buffer += ':'.repeat(WIDTH) + '\n';
 
-      for (let y = 0; y < HEIGHT; y++) {
-        for (let x = 0; x < WIDTH; x++) {
-          let drawn = false;
+    for (let y = 0; y < HEIGHT; y++) {
+      for (let x = 0; x < WIDTH; x++) {
+        let drawn = false;
 
-          if (x === 1 || x === WIDTH - 2) {
-            buffer += ':';
-            drawn = true;
-          }
-          if (x === dinoX && y === dinoY) {
-            buffer += DINO_CHAR;
-            drawn = true;
-          }
-          if (!drawn) {
-            for (let obsX of obstacles) {
-              if (x === obsX && y === HEIGHT - 2) {
-                buffer += OBSTACLE_CHAR;
-                drawn = true;
-                break;
-              }
+        if (x === 1 || x === WIDTH - 2) {
+          buffer += ':';
+          drawn = true;
+        }
+        if (x === dinoX && y === dinoY) {
+          buffer += DINO_CHAR;
+          drawn = true;
+        }
+        if (!drawn) {
+          for (let obsX of obstacles) {
+            if (x === obsX && y === HEIGHT - 2) {
+              buffer += OBSTACLE_CHAR;
+              drawn = true;
+              break;
             }
           }
-          if (!drawn) {
-            for (let cloud of clouds) {
-              if (x === cloud[0] && y === cloud[1]) {
-                buffer += CLOUD_CHAR;
-                drawn = true;
-                break;
-              }
+        }
+        if (!drawn) {
+          for (let cloud of clouds) {
+            if (x === cloud[0] && y === cloud[1]) {
+              buffer += CLOUD_CHAR;
+              drawn = true;
+              break;
             }
           }
-          if (!drawn) {
-            buffer += (y === HEIGHT - 1) ? GROUND_CHAR : EMPTY_CHAR;
-          }
         }
-        buffer += '\n';
-      }
-      buffer += ` | Score: ${score} | High Score: ${highScore}\n\n`;
-      buffer += " | Controls: [Space] -> 'Jump'\n";
-      buffer += "           | [P] -> 'Pause'\n";
-
-      gameDiv.textContent = buffer;
-    }
-
-    function updateGame() {
-      if (isPaused) return;
-
-      // Jumping logic
-      if (isJumping) {
-        dinoY--;
-        jumpCount--;
-        if (jumpCount <= 0) isJumping = false;
-      } else if (dinoY < HEIGHT - 2) {
-        dinoY++;
-      }
-
-      // Move obstacles
-      obstacles = obstacles.map(x => x - 1);
-      if (obstacles.length > 0 && obstacles[0] < 0) {
-        obstacles.shift();
-        score++;
-      }
-      if (Math.floor(Math.random() * obstacleRate) === 0) {
-        obstacles.push(WIDTH - 2);
-      }
-
-      // Move clouds
-      clouds = clouds.map(cloud => [cloud[0] - 1, cloud[1]]);
-      if (Math.random() < 0.04) {
-        clouds.push([WIDTH - 1, Math.floor(Math.random() * (HEIGHT / 2))]);
-      }
-      if (clouds.length > 0 && clouds[0][0] < 0) {
-        clouds.shift();
-      }
-
-      // Collision check
-      for (let obsX of obstacles) {
-        if (obsX === dinoX && dinoY === HEIGHT - 2) {
-          endGame();
-          return;
+        if (!drawn) {
+          buffer += (y === HEIGHT - 1) ? GROUND_CHAR : EMPTY_CHAR;
         }
       }
+      buffer += '\n';
+    }
+    buffer += ` | Score: ${score} | High Score: ${highScore}\n\n`;
+    buffer += " | Controls: [Space/↑ or Tap] -> 'Jump'\n";
+    buffer += "           | [P] -> 'Pause'\n";
 
-      draw();
+    gameDiv.textContent = buffer;
+  }
+
+  function updateGame() {
+    if (isPaused) return;
+
+    if (isJumping) {
+      dinoY--;
+      jumpCount--;
+      if (jumpCount <= 0) isJumping = false;
+    } else if (dinoY < HEIGHT - 2) {
+      dinoY++;
     }
 
-    function endGame() {
-      clearInterval(gameInterval);
-      if (score > highScore) highScore = score;
-      let again = confirm(`Game Over!\nScore: ${score}\nHigh Score: ${highScore}\n\nPlay Again?`);
-      if (again) startGame();
+    obstacles = obstacles.map(x => x - 1);
+    if (obstacles.length > 0 && obstacles[0] < 0) {
+      obstacles.shift();
+      score++;
+    }
+    if (Math.floor(Math.random() * obstacleRate) === 0) {
+      obstacles.push(WIDTH - 2);
     }
 
-    function startGame() {
-      gameNo++;
-      score = 0;
-      dinoY = HEIGHT - 2;
-      isJumping = false;
-      obstacles = [];
-      clouds = [];
-      draw();
-      gameInterval = setInterval(updateGame, speed);
+    clouds = clouds.map(cloud => [cloud[0] - 1, cloud[1]]);
+    if (Math.random() < 0.04) {
+      clouds.push([WIDTH - 1, Math.floor(Math.random() * (HEIGHT / 2))]);
+    }
+    if (clouds.length > 0 && clouds[0][0] < 0) {
+      clouds.shift();
     }
 
-    function selectDifficulty() {
-      let choice = prompt("Choose difficulty: E (Easy), M (Medium), H (Hard)").toLowerCase();
-      if (choice === 'e') {
-        speed = 100;
-        obstacleRate = 20;
-        difficulty = "Easy";
-      } else if (choice === 'm') {
-        speed = 70;
-        obstacleRate = 15;
-        difficulty = "Medium";
-      } else if (choice === 'h') {
-        speed = 40;
-        obstacleRate = 10;
-        difficulty = "Hard";
-      } else {
-        alert("Invalid choice! Defaulting to Easy.");
-        speed = 100;
-        obstacleRate = 20;
-        difficulty = "Easy";
+    for (let obsX of obstacles) {
+      if (obsX === dinoX && dinoY === HEIGHT - 2) {
+        endGame();
+        return;
       }
     }
 
-    window.addEventListener("keydown", e => {
-      if ((e.code === "Space" || e.code === "ArrowUp") && !isJumping && dinoY === HEIGHT - 2) {
-        isJumping = true;
-        jumpCount = jumpHeight;
-      } else if (e.code === "KeyP") {
-        isPaused = !isPaused;
-      }
-    });
+    draw();
+  }
 
-    selectDifficulty();
-    alert("Press OK to start the game!");
-    startGame();
-  </script>
+  function endGame() {
+    clearInterval(gameInterval);
+    if (score > highScore) highScore = score;
+    let again = confirm(`Game Over!\nScore: ${score}\nHigh Score: ${highScore}\n\nPlay Again?`);
+    if (again) startGame();
+  }
+
+  function startGame() {
+    gameNo++;
+    score = 0;
+    dinoY = HEIGHT - 2;
+    isJumping = false;
+    obstacles = [];
+    clouds = [];
+    draw();
+    gameInterval = setInterval(updateGame, speed);
+  }
+
+  function selectDifficulty() {
+    let choice = prompt("Choose difficulty: E (Easy), M (Medium), H (Hard)").toLowerCase();
+    if (choice === 'e') {
+      speed = 100;
+      obstacleRate = 20;
+      difficulty = "Easy";
+    } else if (choice === 'm') {
+      speed = 70;
+      obstacleRate = 15;
+      difficulty = "Medium";
+    } else if (choice === 'h') {
+      speed = 40;
+      obstacleRate = 10;
+      difficulty = "Hard";
+    } else {
+      alert("Invalid choice! Defaulting to Easy.");
+      speed = 100;
+      obstacleRate = 20;
+      difficulty = "Easy";
+    }
+  }
+
+  window.addEventListener("keydown", e => {
+    if ((e.code === "Space" || e.code === "ArrowUp") && !isJumping && dinoY === HEIGHT - 2) {
+      isJumping = true;
+      jumpCount = jumpHeight;
+    } else if (e.code === "KeyP") {
+      isPaused = !isPaused;
+    }
+  });
+
+  // ✅ Mobile support: Tap to jump
+  window.addEventListener("touchstart", () => {
+    if (!isJumping && dinoY === HEIGHT - 2) {
+      isJumping = true;
+      jumpCount = jumpHeight;
+    }
+  });
+
+  selectDifficulty();
+  alert("Press OK to start the game!");
+  startGame();
+</script>
 </body>
 </html>
