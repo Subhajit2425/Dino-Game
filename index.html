@@ -66,7 +66,8 @@
   <div id="menu">
     <h1 id="DinoM">DINO GAME</h1>
     <div id="menuButtons">
-      <button onclick="startGame()">Start Game</button>
+      <button onclick="selectDifficulty()">Start Game</button>
+      <button onclick="instructions()">Instructions</button>
     </div>
   </div>
 
@@ -76,7 +77,7 @@
     <div id="controls">
       <button onclick="pauseGame()">Pause</button>
       <button onclick="resumeGame()">Resume</button>
-      <button id="exitBtn" onclick="exitToMenu()">Exit</button>
+      <button id="exitBtn" onclick="showMenu()">Exit</button>
     </div>
   </div>
 
@@ -89,17 +90,30 @@
     </div>
   </div>
 
+  <!-- 🔊 Sound Effects -->
+  <audio id="jumpSound" src="https://www.soundjay.com/buttons/button-3.mp3"></audio>
+  <audio id="scoreSound" src="https://cdn.jsdelivr.net/gh/SubhajitC/AudioLib/score.mp3"></audio>
+  <audio id="gameOverSound" src="https://www.soundjay.com/buttons/button-10.mp3"></audio>
+  <audio id="powerupSound" src="https://www.soundjay.com/buttons/button-6.mp3"></audio>
+
   <script>
     const WIDTH = 60, HEIGHT = 20;
     const DINO_CHAR = 'O', OBSTACLE_CHAR = '|', GROUND_CHAR = '=', CLOUD_CHAR = '*', EMPTY_CHAR = ' ';
+    const POWERUP_CHAR = '@';
 
     let dinoX = 5, dinoY = HEIGHT - 2, isJumping = false, jumpHeight = 6, jumpCount = 0;
-    let score = 0, highScore = 0, speed = 100, gameNo = 0, obstacleRate = 20;
+    let score = 0, highScore = localStorage.getItem('dinoHighScore') || 0;
+    let speed = 100, gameNo = 0, obstacleRate = 20;
     let difficulty = "Easy", isPaused = false, gameRunning = true;
-    let obstacles = [], clouds = [], gameInterval;
+    let obstacles = [], clouds = [], powerups = [], gameInterval, invincible = false, invincibilityTimer = 0;
 
     const gameDiv = document.getElementById("game");
     const gameText = document.getElementById("gameText");
+
+    const jumpSound = document.getElementById("jumpSound");
+    const scoreSound = document.getElementById("scoreSound");
+    const gameOverSound = document.getElementById("gameOverSound");
+    const powerupSound = document.getElementById("powerupSound");
 
     function showMenu() {
       document.getElementById("menu").classList.remove("hidden");
@@ -118,18 +132,21 @@
           if (x === 1 || x === WIDTH - 2) {
             buffer += ':'; drawn = true;
           } else if (x === dinoX && y === dinoY) {
-            buffer += DINO_CHAR; drawn = true;
+            buffer += invincible ? 'Ø' : DINO_CHAR; drawn = true;
           } else {
             for (let obsX of obstacles) {
               if (x === obsX && y === HEIGHT - 2) {
                 buffer += OBSTACLE_CHAR; drawn = true; break;
               }
             }
-          }
-          if (!drawn) {
             for (let cloud of clouds) {
-              if (x === cloud[0] && y === cloud[1]) {
+              if (!drawn && x === cloud[0] && y === cloud[1]) {
                 buffer += CLOUD_CHAR; drawn = true; break;
+              }
+            }
+            for (let p of powerups) {
+              if (!drawn && x === p[0] && y === p[1]) {
+                buffer += POWERUP_CHAR; drawn = true; break;
               }
             }
           }
@@ -156,10 +173,18 @@
         dinoY++;
       }
 
+      if (invincibilityTimer > 0) {
+        invincibilityTimer--;
+        if (invincibilityTimer === 0) invincible = false;
+      }
+
       obstacles = obstacles.map(x => x - 1);
       if (obstacles.length > 0 && obstacles[0] < 0) {
-        obstacles.shift(); score++;
+        obstacles.shift();
+        score++;
+        scoreSound.play();
       }
+
       if (Math.floor(Math.random() * obstacleRate) === 0) {
         obstacles.push(WIDTH - 2);
       }
@@ -172,9 +197,25 @@
         clouds.shift();
       }
 
+      powerups = powerups.map(p => [p[0] - 1, p[1]]);
+      if (Math.random() < 0.02) {
+        powerups.push([WIDTH - 2, HEIGHT - 3]);
+      }
+      powerups = powerups.filter(p => p[0] >= 0);
+
       for (let obsX of obstacles) {
-        if (obsX === dinoX && dinoY === HEIGHT - 2) {
+        if (obsX === dinoX && dinoY === HEIGHT - 2 && !invincible) {
           return endGame();
+        }
+      }
+
+      for (let i = 0; i < powerups.length; i++) {
+        if (powerups[i][0] === dinoX && powerups[i][1] === dinoY) {
+          invincible = true;
+          invincibilityTimer = 50;
+          powerups.splice(i, 1);
+          powerupSound.play();
+          break;
         }
       }
 
@@ -184,7 +225,12 @@
     function endGame() {
       clearInterval(gameInterval);
       gameRunning = false;
-      if (score > highScore) highScore = score;
+      gameOverSound.play();
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('dinoHighScore', highScore);
+      }
 
       gameDiv.classList.add("hidden");
       document.getElementById("gameOver").classList.remove("hidden");
@@ -193,10 +239,14 @@
         `Game Over!\nScore: ${score}\nHigh Score: ${highScore}`;
     }
 
+    function instructions() {
+      alert("===============[  [ INSTRUCTIONS ]  ]=============== \n\n 1. Press [Space/↑ or Tap] -> 'Jump' \n        | [P] -> 'Pause' \n 2. The 'Power Ups' [@] will immune you for a while.");
+    }
+
     function startGame() {
       gameNo++; score = 0; dinoY = HEIGHT - 2;
-      isJumping = false; obstacles = []; clouds = [];
-      isPaused = false; gameRunning = true;
+      isJumping = false; obstacles = []; clouds = []; powerups = [];
+      isPaused = false; gameRunning = true; invincible = false;
 
       document.getElementById("menu").classList.add("hidden");
       document.getElementById("gameOver").classList.add("hidden");
@@ -216,24 +266,20 @@
       isPaused = false;
     }
 
-    function exitToMenu() {
-      clearInterval(gameInterval);
-      gameRunning = false;
-      showMenu();
-    }
-
     function selectDifficulty() {
       let choice = prompt("Choose difficulty: E (Easy), M (Medium), H (Hard)").toLowerCase();
-      if (choice === 'e') { speed = 100; obstacleRate = 20; difficulty = "Easy"; }
-      else if (choice === 'm') { speed = 70; obstacleRate = 15; difficulty = "Medium"; }
+      if (choice === 'e') { speed = 70; obstacleRate = 20; difficulty = "Easy"; }
+      else if (choice === 'm') { speed = 55; obstacleRate = 15; difficulty = "Medium"; }
       else if (choice === 'h') { speed = 40; obstacleRate = 10; difficulty = "Hard"; }
-      else { alert("Invalid choice! Defaulting to Easy."); speed = 100; obstacleRate = 20; difficulty = "Easy"; }
+      else { alert("Invalid choice! Defaulting to Easy."); speed = 70; obstacleRate = 20; difficulty = "Easy"; }
+      startGame();
     }
 
     // Keyboard & Touch Input
     window.addEventListener("keydown", e => {
       if ((e.code === "Space" || e.code === "ArrowUp") && !isJumping && dinoY === HEIGHT - 2) {
         isJumping = true; jumpCount = jumpHeight;
+        jumpSound.play();
       } else if (e.code === "KeyP") {
         isPaused = !isPaused;
       }
@@ -242,11 +288,11 @@
     window.addEventListener("touchstart", () => {
       if (!isJumping && dinoY === HEIGHT - 2) {
         isJumping = true; jumpCount = jumpHeight;
+        jumpSound.play();
       }
     });
 
     // Init
-    selectDifficulty();
     showMenu();
   </script>
 </body>
