@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dino Game JS</title>
   <style>
     body {
@@ -13,192 +13,241 @@
       overflow: hidden;
       margin: 0;
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
-    #game {
-      padding: 10px;
+
+    .hidden { display: none; }
+
+    #game, #menu, #gameOver {
+      text-align: center;
+      width: 100%;
     }
+
+    #DinoM {
+      font-size: xx-large;
+    }
+
+    #controls, #menuButtons, #overButtons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
     button {
       font-size: 16px;
-      margin: 10px;
+      padding: 5px 15px;
+      background-color: #222;
+      color: white;
+      border: 1px solid #555;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #444;
+    }
+
+    #exitBtn, #toMenuBtn {
+      background-color: #C42B1C;
+    }
+
+    #exitBtn:hover, #toMenuBtn:hover {
+      background-color: #a11f15;
     }
   </style>
 </head>
 <body>
-  <div id="game"></div>
+
+  <!-- ✅ Main Menu -->
+  <div id="menu">
+    <h1 id="DinoM">DINO GAME</h1>
+    <div id="menuButtons">
+      <button onclick="startGame()">Start Game</button>
+    </div>
+  </div>
+
+  <!-- ✅ Game Screen -->
+  <div id="game" class="hidden">
+    <div id="gameText"></div>
+    <div id="controls">
+      <button onclick="pauseGame()">Pause</button>
+      <button onclick="resumeGame()">Resume</button>
+      <button id="exitBtn" onclick="exitToMenu()">Exit</button>
+    </div>
+  </div>
+
+  <!-- ✅ Game Over Screen -->
+  <div id="gameOver" class="hidden">
+    <h2 id="gameOverText"></h2>
+    <div id="overButtons">
+      <button onclick="startGame()">Restart</button>
+      <button id="toMenuBtn" onclick="showMenu()">Exit</button>
+    </div>
+  </div>
+
   <script>
-  const WIDTH = 60;
-  const HEIGHT = 20;
-  const DINO_CHAR = 'O';
-  const OBSTACLE_CHAR = '|';
-  const GROUND_CHAR = '=';
-  const CLOUD_CHAR = '*';
-  const EMPTY_CHAR = ' ';
+    const WIDTH = 60, HEIGHT = 20;
+    const DINO_CHAR = 'O', OBSTACLE_CHAR = '|', GROUND_CHAR = '=', CLOUD_CHAR = '*', EMPTY_CHAR = ' ';
 
-  let dinoX = 5;
-  let dinoY = HEIGHT - 2;
-  let isJumping = false;
-  let jumpHeight = 6;
-  let jumpCount = 0;
-  let score = 0;
-  let highScore = 0;
-  let speed = 100;
-  let gameNo = 0;
-  let obstacleRate = 20;
-  let difficulty = "Easy";
-  let isPaused = false;
+    let dinoX = 5, dinoY = HEIGHT - 2, isJumping = false, jumpHeight = 6, jumpCount = 0;
+    let score = 0, highScore = 0, speed = 100, gameNo = 0, obstacleRate = 20;
+    let difficulty = "Easy", isPaused = false, gameRunning = true;
+    let obstacles = [], clouds = [], gameInterval;
 
-  let obstacles = [];
-  let clouds = [];
-  let gameInterval;
+    const gameDiv = document.getElementById("game");
+    const gameText = document.getElementById("gameText");
 
-  const gameDiv = document.getElementById("game");
+    function showMenu() {
+      document.getElementById("menu").classList.remove("hidden");
+      gameDiv.classList.add("hidden");
+      document.getElementById("gameOver").classList.add("hidden");
+    }
 
-  function draw() {
-    let buffer = " []=[]=[]=[]=[]=[]=[]=[  [ DINO ]  ]=[]=[]=[]=[]=[]=[]=[] \n\n";
-    buffer += `  | [Game: ${gameNo}] | [Difficulty: ${difficulty}]\n`;
-    buffer += ':'.repeat(WIDTH) + '\n';
+    function draw() {
+      let buffer = " []=[]=[]=[]=[]=[]=[]=[  [ DINO ]  ]=[]=[]=[]=[]=[]=[]=[] \n\n";
+      buffer += `  | [Game: ${gameNo}] | [Difficulty: ${difficulty}]\n`;
+      buffer += ':'.repeat(WIDTH) + '\n';
 
-    for (let y = 0; y < HEIGHT; y++) {
-      for (let x = 0; x < WIDTH; x++) {
-        let drawn = false;
-
-        if (x === 1 || x === WIDTH - 2) {
-          buffer += ':';
-          drawn = true;
-        }
-        if (x === dinoX && y === dinoY) {
-          buffer += DINO_CHAR;
-          drawn = true;
-        }
-        if (!drawn) {
-          for (let obsX of obstacles) {
-            if (x === obsX && y === HEIGHT - 2) {
-              buffer += OBSTACLE_CHAR;
-              drawn = true;
-              break;
+      for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+          let drawn = false;
+          if (x === 1 || x === WIDTH - 2) {
+            buffer += ':'; drawn = true;
+          } else if (x === dinoX && y === dinoY) {
+            buffer += DINO_CHAR; drawn = true;
+          } else {
+            for (let obsX of obstacles) {
+              if (x === obsX && y === HEIGHT - 2) {
+                buffer += OBSTACLE_CHAR; drawn = true; break;
+              }
             }
           }
-        }
-        if (!drawn) {
-          for (let cloud of clouds) {
-            if (x === cloud[0] && y === cloud[1]) {
-              buffer += CLOUD_CHAR;
-              drawn = true;
-              break;
+          if (!drawn) {
+            for (let cloud of clouds) {
+              if (x === cloud[0] && y === cloud[1]) {
+                buffer += CLOUD_CHAR; drawn = true; break;
+              }
             }
           }
+          if (!drawn) {
+            buffer += (y === HEIGHT - 1) ? GROUND_CHAR : EMPTY_CHAR;
+          }
         }
-        if (!drawn) {
-          buffer += (y === HEIGHT - 1) ? GROUND_CHAR : EMPTY_CHAR;
+        buffer += '\n';
+      }
+
+      buffer += ` | Score: ${score} | High Score: ${highScore}\n\n`;
+      buffer += " | Controls: [Space/↑ or Tap] -> 'Jump'\n           | [P] -> 'Pause'\n";
+
+      gameText.textContent = buffer;
+    }
+
+    function updateGame() {
+      if (isPaused || !gameRunning) return;
+
+      if (isJumping) {
+        dinoY--; jumpCount--;
+        if (jumpCount <= 0) isJumping = false;
+      } else if (dinoY < HEIGHT - 2) {
+        dinoY++;
+      }
+
+      obstacles = obstacles.map(x => x - 1);
+      if (obstacles.length > 0 && obstacles[0] < 0) {
+        obstacles.shift(); score++;
+      }
+      if (Math.floor(Math.random() * obstacleRate) === 0) {
+        obstacles.push(WIDTH - 2);
+      }
+
+      clouds = clouds.map(cloud => [cloud[0] - 1, cloud[1]]);
+      if (Math.random() < 0.04) {
+        clouds.push([WIDTH - 1, Math.floor(Math.random() * (HEIGHT / 2))]);
+      }
+      if (clouds.length > 0 && clouds[0][0] < 0) {
+        clouds.shift();
+      }
+
+      for (let obsX of obstacles) {
+        if (obsX === dinoX && dinoY === HEIGHT - 2) {
+          return endGame();
         }
       }
-      buffer += '\n';
-    }
-    buffer += ` | Score: ${score} | High Score: ${highScore}\n\n`;
-    buffer += " | Controls: [Space/↑ or Tap] -> 'Jump'\n";
-    buffer += "           | [P] -> 'Pause'\n";
 
-    gameDiv.textContent = buffer;
-  }
-
-  function updateGame() {
-    if (isPaused) return;
-
-    if (isJumping) {
-      dinoY--;
-      jumpCount--;
-      if (jumpCount <= 0) isJumping = false;
-    } else if (dinoY < HEIGHT - 2) {
-      dinoY++;
+      draw();
     }
 
-    obstacles = obstacles.map(x => x - 1);
-    if (obstacles.length > 0 && obstacles[0] < 0) {
-      obstacles.shift();
-      score++;
-    }
-    if (Math.floor(Math.random() * obstacleRate) === 0) {
-      obstacles.push(WIDTH - 2);
+    function endGame() {
+      clearInterval(gameInterval);
+      gameRunning = false;
+      if (score > highScore) highScore = score;
+
+      gameDiv.classList.add("hidden");
+      document.getElementById("gameOver").classList.remove("hidden");
+
+      document.getElementById("gameOverText").textContent =
+        `Game Over!\nScore: ${score}\nHigh Score: ${highScore}`;
     }
 
-    clouds = clouds.map(cloud => [cloud[0] - 1, cloud[1]]);
-    if (Math.random() < 0.04) {
-      clouds.push([WIDTH - 1, Math.floor(Math.random() * (HEIGHT / 2))]);
-    }
-    if (clouds.length > 0 && clouds[0][0] < 0) {
-      clouds.shift();
+    function startGame() {
+      gameNo++; score = 0; dinoY = HEIGHT - 2;
+      isJumping = false; obstacles = []; clouds = [];
+      isPaused = false; gameRunning = true;
+
+      document.getElementById("menu").classList.add("hidden");
+      document.getElementById("gameOver").classList.add("hidden");
+      gameDiv.classList.remove("hidden");
+
+      clearInterval(gameInterval);
+      gameInterval = setInterval(updateGame, speed);
+      draw();
     }
 
-    for (let obsX of obstacles) {
-      if (obsX === dinoX && dinoY === HEIGHT - 2) {
-        endGame();
-        return;
+    function pauseGame() {
+      isPaused = true;
+    }
+
+    function resumeGame() {
+      if (!gameRunning) return;
+      isPaused = false;
+    }
+
+    function exitToMenu() {
+      clearInterval(gameInterval);
+      gameRunning = false;
+      showMenu();
+    }
+
+    function selectDifficulty() {
+      let choice = prompt("Choose difficulty: E (Easy), M (Medium), H (Hard)").toLowerCase();
+      if (choice === 'e') { speed = 100; obstacleRate = 20; difficulty = "Easy"; }
+      else if (choice === 'm') { speed = 70; obstacleRate = 15; difficulty = "Medium"; }
+      else if (choice === 'h') { speed = 40; obstacleRate = 10; difficulty = "Hard"; }
+      else { alert("Invalid choice! Defaulting to Easy."); speed = 100; obstacleRate = 20; difficulty = "Easy"; }
+    }
+
+    // Keyboard & Touch Input
+    window.addEventListener("keydown", e => {
+      if ((e.code === "Space" || e.code === "ArrowUp") && !isJumping && dinoY === HEIGHT - 2) {
+        isJumping = true; jumpCount = jumpHeight;
+      } else if (e.code === "KeyP") {
+        isPaused = !isPaused;
       }
-    }
+    });
 
-    draw();
-  }
+    window.addEventListener("touchstart", () => {
+      if (!isJumping && dinoY === HEIGHT - 2) {
+        isJumping = true; jumpCount = jumpHeight;
+      }
+    });
 
-  function endGame() {
-    clearInterval(gameInterval);
-    if (score > highScore) highScore = score;
-    let again = confirm(`Game Over!\nScore: ${score}\nHigh Score: ${highScore}\n\nPlay Again?`);
-    if (again) startGame();
-  }
-
-  function startGame() {
-    gameNo++;
-    score = 0;
-    dinoY = HEIGHT - 2;
-    isJumping = false;
-    obstacles = [];
-    clouds = [];
-    draw();
-    gameInterval = setInterval(updateGame, speed);
-  }
-
-  function selectDifficulty() {
-    let choice = prompt("Choose difficulty: E (Easy), M (Medium), H (Hard)").toLowerCase();
-    if (choice === 'e') {
-      speed = 100;
-      obstacleRate = 20;
-      difficulty = "Easy";
-    } else if (choice === 'm') {
-      speed = 70;
-      obstacleRate = 15;
-      difficulty = "Medium";
-    } else if (choice === 'h') {
-      speed = 40;
-      obstacleRate = 10;
-      difficulty = "Hard";
-    } else {
-      alert("Invalid choice! Defaulting to Easy.");
-      speed = 100;
-      obstacleRate = 20;
-      difficulty = "Easy";
-    }
-  }
-
-  window.addEventListener("keydown", e => {
-    if ((e.code === "Space" || e.code === "ArrowUp") && !isJumping && dinoY === HEIGHT - 2) {
-      isJumping = true;
-      jumpCount = jumpHeight;
-    } else if (e.code === "KeyP") {
-      isPaused = !isPaused;
-    }
-  });
-
-  // ✅ Mobile support: Tap to jump
-  window.addEventListener("touchstart", () => {
-    if (!isJumping && dinoY === HEIGHT - 2) {
-      isJumping = true;
-      jumpCount = jumpHeight;
-    }
-  });
-
-  selectDifficulty();
-  alert("Press OK to start the game!");
-  startGame();
-</script>
+    // Init
+    selectDifficulty();
+    showMenu();
+  </script>
 </body>
 </html>
