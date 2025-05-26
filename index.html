@@ -61,7 +61,6 @@
   </style>
 </head>
 <body>
-
   <!-- ✅ Main Menu -->
   <div id="menu">
     <h1 id="DinoM">DINO GAME</h1>
@@ -98,8 +97,8 @@
 
   <script>
     const WIDTH = 60, HEIGHT = 20;
-    const DINO_CHAR = 'O', OBSTACLE_CHAR = '|', GROUND_CHAR = '=', CLOUD_CHAR = '*', EMPTY_CHAR = ' ';
-    const POWERUP_CHAR = '@';
+    const DINO_CHAR = '@', OBSTACLE_CHAR = '|', GROUND_CHAR = '=', CLOUD_CHAR = '☁', EMPTY_CHAR = ' ';
+    const POWERUP_CHAR = '+';
 
     let dinoX = 5, dinoY = HEIGHT - 2, isJumping = false, jumpHeight = 6, jumpCount = 0;
     let score = 0, highScore = localStorage.getItem('dinoHighScore') || 0;
@@ -240,7 +239,7 @@
     }
 
     function instructions() {
-      alert("===============[  [ INSTRUCTIONS ]  ]=============== \n\n 1. Press [Space/↑ or Tap] -> 'Jump' \n        | [P] -> 'Pause' \n 2. The 'Power Ups' [@] will immune you for a while.");
+      alert("===============[  [ INSTRUCTIONS ]  ]=============== \n\n 1. Avoid The Obstracles[|] \n 2. Press [Space/↑ or Tap] -> 'Jump' \n        | [P] -> 'Pause' \n 3. The 'Power Ups' [+] will immune you for a while.");
     }
 
     function startGame() {
@@ -258,7 +257,8 @@
     }
 
     function pauseGame() {
-      isPaused = true;
+      if (isPaused) {alert(" The Game Is Already Paused. To Resume Press The [Resume] Button Below.");}
+      else {isPaused = true;}
     }
 
     function resumeGame() {
