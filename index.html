@@ -76,7 +76,12 @@
     <div id="controls">
       <button onclick="pauseGame()">Pause</button>
       <button onclick="resumeGame()">Resume</button>
-      <button id="exitBtn" onclick="showMenu()">Exit</button>
+      <button id="exitBtn" onclick="
+        if (!isPaused) {
+          pauseGame();
+        } 
+        showMenu()"
+      >Exit</button>
     </div>
   </div>
 
@@ -88,11 +93,11 @@
       <button id="toMenuBtn" onclick="showMenu()">Exit</button>
     </div>
   </div>
-
+  
   <!-- 🔊 Sound Effects -->
   <audio id="jumpSound" src="https://www.soundjay.com/buttons/button-3.mp3"></audio>
-  <audio id="scoreSound" src="https://cdn.jsdelivr.net/gh/SubhajitC/AudioLib/score.mp3"></audio>
   <audio id="gameOverSound" src="https://www.soundjay.com/buttons/button-10.mp3"></audio>
+  <audio id="GameStarting" src="https://www.soundjay.com/buttons/beep-02.mp3"></audio>
   <audio id="powerupSound" src="https://www.soundjay.com/buttons/button-6.mp3"></audio>
 
   <script>
@@ -110,7 +115,7 @@
     const gameText = document.getElementById("gameText");
 
     const jumpSound = document.getElementById("jumpSound");
-    const scoreSound = document.getElementById("scoreSound");
+    const GameStarting = document.getElementById("GameStarting");
     const gameOverSound = document.getElementById("gameOverSound");
     const powerupSound = document.getElementById("powerupSound");
 
@@ -181,7 +186,6 @@
       if (obstacles.length > 0 && obstacles[0] < 0) {
         obstacles.shift();
         score++;
-        scoreSound.play();
       }
 
       if (Math.floor(Math.random() * obstacleRate) === 0) {
@@ -239,10 +243,11 @@
     }
 
     function instructions() {
-      alert("===============[  [ INSTRUCTIONS ]  ]=============== \n\n 1. Avoid The Obstracles[|] \n 2. Press [Space/↑ or Tap] -> 'Jump' \n        | [P] -> 'Pause' \n 3. The 'Power Ups' [+] will immune you for a while.");
+      alert("===========[  [ INSTRUCTIONS ]  ]=========== \n\n 1. Avoid The Obstracles[|] \n 2. Press [Space/↑ or Tap] -> 'Jump' \n        | [P] -> 'Pause' \n 3. The 'Power Ups' [+] will immune you for a while.");
     }
 
     function startGame() {
+      GameStarting.play();
       gameNo++; score = 0; dinoY = HEIGHT - 2;
       isJumping = false; obstacles = []; clouds = []; powerups = [];
       isPaused = false; gameRunning = true; invincible = false;
